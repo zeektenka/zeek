@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>NEON RAIDERS — Retro Space Shooter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="arcade">
+    <div id="screen">
+      <canvas id="game" width="480" height="720"></canvas>
+
+      <div id="scanlines"></div>
+      <div id="vignette"></div>
+
+      <div id="hud">
+        <div class="hud-row">
+          <span id="scoreLabel">SCORE <b id="score">0</b></span>
+          <span id="levelLabel">WAVE <b id="level">1</b></span>
+          <span id="hiLabel">HI <b id="hiscore">0</b></span>
+        </div>
+        <div class="hud-row" id="livesRow"></div>
+      </div>
+
+      <div id="bossbar" class="hidden">
+        <div id="bossbarFill"></div>
+      </div>
+
+      <div id="startScreen" class="overlay">
+        <h1 class="title glitch">NEON<br>RAIDERS</h1>
+        <p class="blink">PRESS START</p>
+        <div class="menu">
+          <button id="startBtn" class="arcade-btn">START GAME</button>
+          <button id="muteBtn" class="arcade-btn small">SOUND: ON</button>
+        </div>
+        <div class="instructions">
+          <p>◄ ► / A D — MOVE &nbsp; SPACE — FIRE &nbsp; P — PAUSE</p>
+          <p class="dim">touch: drag to move, tap right side to fire</p>
+        </div>
+      </div>
+
+      <div id="pauseScreen" class="overlay hidden">
+        <h2 class="title">PAUSED</h2>
+        <p class="blink">PRESS P TO RESUME</p>
+      </div>
+
+      <div id="gameOverScreen" class="overlay hidden">
+        <h2 class="title glitch">GAME OVER</h2>
+        <p id="finalScore"></p>
+        <p id="newHigh" class="blink hidden">NEW HIGH SCORE!</p>
+        <button id="restartBtn" class="arcade-btn">RETRY</button>
+      </div>
+
+      <div id="levelUpBanner" class="banner hidden">WAVE <span id="levelUpNum"></span></div>
+
+      <div id="touchControls">
+        <div id="touchLeft" class="touchZone"></div>
+        <div id="touchRight" class="touchZone"></div>
+      </div>
+    </div>
+    <div class="cabinet-label">NEON RAIDERS</div>
+  </div>
+
+<script src="game.js"></script>
+</body>
+</html>
