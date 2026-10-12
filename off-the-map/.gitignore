@@ -1,0 +1,5 @@
+assets/geo/
+assets/models/
+out/
+__pycache__/
+*.pyc
