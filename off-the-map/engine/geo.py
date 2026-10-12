@@ -10,6 +10,8 @@ import os
 import cv2
 import numpy as np
 
+from .post import fast_blur
+
 from .canvas import rgba
 
 GEOJSON = os.path.join(os.path.dirname(__file__), "..", "assets", "geo",
@@ -110,7 +112,7 @@ def draw_map(cv, world, land="#d9cfb8", border="#9c917b", highlight=None, depth=
     codes = world.visible(cv, depth)
     rings = [r for c in codes if c not in highlight for r in world.rings[c]]
     m = cv.mask(rings, depth)
-    sh = cv2.GaussianBlur(m, (0, 0), 5 * cv.k)
+    sh = fast_blur(m, 5 * cv.k)
     cv.fill_mask(sh, "#000000", shadow, offset=(3, 5))
     cv.fill_mask(m, land, texture=paper)
     _borders(cv, rings, depth, border, border_w)
@@ -120,9 +122,9 @@ def draw_map(cv, world, land="#d9cfb8", border="#9c917b", highlight=None, depth=
         hm = cv.mask(world.rings[code], depth)
         rim_px = max(2, int(6 * cv.k * lift))
         k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * rim_px + 1, 2 * rim_px + 1))
-        rim = cv2.GaussianBlur(cv2.dilate(hm, k), (0, 0), 0.8 * cv.k)
+        rim = fast_blur(cv2.dilate(hm, k), 0.8 * cv.k)
         s = 10 * lift + 2
-        cv.fill_mask(cv2.GaussianBlur(rim, (0, 0), (4 + 10 * lift) * cv.k), "#000000",
+        cv.fill_mask(fast_blur(rim, (4 + 10 * lift) * cv.k), "#000000",
                      0.35 + 0.25 * lift, offset=(s * 0.5, s))
         cv.fill_mask(rim, "#f7f3ea", texture=paper)
         cv.fill_mask(hm, color, texture=paper)

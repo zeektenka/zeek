@@ -133,7 +133,8 @@ class Canvas:
         layer = self.buf
         self.buf = self._stack.pop()
         if blur > 0.05:
-            layer = cv2.GaussianBlur(layer, (0, 0), blur * self.k)
+            from .post import fast_blur
+            layer = fast_blur(layer, blur * self.k)
         self._composite(layer, 0, 0, alpha, blend)
 
     def _composite(self, src, x0, y0, alpha=1.0, blend="normal"):

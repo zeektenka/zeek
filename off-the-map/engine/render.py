@@ -15,8 +15,11 @@ from . import post
 PROFILES = {
     # name: ffmpeg video args
     "preview": ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"],
-    "master": ["-c:v", "libx264", "-preset", "slow", "-crf", "14", "-tune", "film",
-               "-profile:v", "high", "-pix_fmt", "yuv420p"],
+    # CRF 14 plus film grain pushes ~200 Mbps and encodes slower than it renders.
+    # YouTube re-encodes anyway, so ~25 Mbps is the sensible ceiling for a master.
+    "master": ["-c:v", "libx264", "-preset", "medium", "-crf", "18",
+               "-profile:v", "high", "-pix_fmt", "yuv420p",
+               "-maxrate", "48M", "-bufsize", "96M"],
     "master10": ["-c:v", "libx265", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p10le",
                  "-tag:v", "hvc1"],
 }

@@ -244,3 +244,38 @@ def hand_underline(x0, x1, y, seed=0, wobble=3.0, n=40, double=False):
         back = np.stack([xs[::-1] - (x1 - x0) * 0.03, ys[::-1] + wobble * 2.2], 1)
         pts = np.vstack([pts, back])
     return pts
+
+
+def disintegrate(sprite, amount=0.6, seed=0, direction=1.0, specks=160):
+    """Erode a sprite's alpha into fragments, strongest on one side, with a
+    scatter of detached flecks drifting off. Used for 'this money turned to ash'.
+
+    direction: 1.0 eats from the right, -1.0 from the left.
+    """
+    img = sprite.img.copy()
+    h, w = img.shape[:2]
+    res = sprite.res
+    xs = np.linspace(0, 1, w, dtype=np.float32)
+    if direction < 0:
+        xs = xs[::-1]
+    grad = np.clip((xs - (1 - amount)) / max(amount, 1e-3), 0, 1)[None, :]
+    n = noise(h, w, max(res * 2.5, 3), seed, 5, 0.55) * 0.5 + 0.5
+    keep = np.clip((n - grad * 1.15) * 7 + 0.5, 0, 1)
+    img *= keep[..., None]
+    # flecks that have broken away
+    rng = np.random.default_rng(seed + 11)
+    pad = int(w * 0.22)
+    out = np.zeros((h + 2 * pad, w + pad, 4), np.float32)
+    out[pad:pad + h, :w] = img
+    for _ in range(specks):
+        u = rng.random() ** 0.5
+        sx = int(w * (1 - amount * 0.9) + u * (w * amount + pad * 0.85))
+        sy = int(pad + rng.random() * h + (rng.random() - 0.5) * pad * u * 1.4)
+        s = max(1, int(rng.uniform(1.0, 3.4) * res))
+        if 0 <= sy < out.shape[0] - s and 0 <= sx < out.shape[1] - s:
+            src_y = min(max(int(rng.random() * h), 0), h - 1)
+            col = img[src_y, min(int(w * 0.75), w - 1), :3]
+            a = rng.uniform(0.25, 0.9) * (1 - u * 0.7)
+            out[sy:sy + s, sx:sx + s, :3] = col * a
+            out[sy:sy + s, sx:sx + s, 3] = a
+    return Sprite(out, res)

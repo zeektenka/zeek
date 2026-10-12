@@ -8,7 +8,7 @@ import math
 import cv2
 import numpy as np
 
-from .canvas import Sprite, rgba
+from .canvas import Sprite, rgba, REF_W, REF_H
 from . import paper as P
 from .text import text_rgba, measure
 
@@ -49,13 +49,31 @@ def tile(seed=1, size=1024):
 
 
 # ---------------------------------------------------------------- background
-def desk(cv, seed=3, light=(0.5, 0.42)):
-    """Dark paper desk with a soft pool of light; grain moves with the camera
-    at depth 0.3 so the background has parallax."""
-    from .post import radial
-    radial(cv, INK_2, INK, *light, radius=1.05)
-    tex = cv.texture(tile(seed), depth=0.3, tile_res=cv.k * 1.0)
-    cv.buf[..., :3] *= 1 + (tex - 1) * 1.6
+def desk(cv, seed=3, light=(0.5, 0.42), parallax=0.3, grain_strength=1.6):
+    """Dark paper desk with a soft pool of light.
+
+    The gradient and its paper grain are baked together once per canvas size,
+    then slid behind the action to give the background parallax. Rebuilding
+    this per frame was more than half the cost of a render.
+    """
+    from .post import _fields, radial
+    from .canvas import Canvas
+    key = ("desk", cv.W, cv.H, seed, light, round(grain_strength, 2))
+    base = _fields.get(key)
+    m = int(cv.W * 0.05) + 2
+    if base is None:
+        pad = Canvas(cv.out_w, cv.out_h, ss=cv.W / cv.out_w)
+        radial(pad, INK_2, INK, *light, radius=1.05)
+        tex = pad.texture(tile(seed), depth=1.0, tile_res=cv.k)
+        pad.buf[..., :3] *= 1 + (tex - 1) * grain_strength
+        pad.buf[..., 3] = 1.0
+        base = cv2.copyMakeBorder(pad.buf, m, m, m, m, cv2.BORDER_REFLECT)
+        _fields[key] = base
+    # slide the baked plate by where a fixed world point sits at this depth
+    p = cv.to_px([(REF_W / 2, REF_H / 2)], parallax)[0]
+    dx = int(np.clip(p[0] - cv.W / 2, -m, m))
+    dy = int(np.clip(p[1] - cv.H / 2, -m, m))
+    cv.buf[:] = base[m + dy:m + dy + cv.H, m + dx:m + dx + cv.W]
 
 
 def newsprint(w, h, res, seed=0, headline=None, cols=3, tone=PAPER, torn=2.5):
@@ -93,20 +111,53 @@ def newsprint(w, h, res, seed=0, headline=None, cols=3, tone=PAPER, torn=2.5):
     return sheet
 
 
-def scraps(cv, t, seed=11, n=7, depth=0.55, blur=2.5, alpha=0.55, area=None):
-    """Out-of-focus newsprint scraps drifting behind the focus (parallax + depth of field)."""
+def bake(cv, key, draw, world_w=2560, world_h=1440, scale=0.5, blur=0.0, alpha=1.0):
+    """Render `draw(canvas)` once into an offscreen layer and reuse it as a sprite.
+
+    The layer covers a 16:9 world rect centred on the frame, so it can be placed
+    at any depth and still parallax correctly. Blur is applied once at bake
+    time rather than per frame, which is the difference between a preview and a
+    feature-length render finishing overnight.
+    """
+    from .canvas import Canvas
+    res = cv.k * scale
+    k = (key, round(res, 3), round(blur, 2))
+    sp = _cache.get(k)
+    if sp is None:
+        sub = Canvas(max(2, int(world_w * res)), max(2, int(world_h * res)), ss=1.0)
+        sub.cam.set(REF_W / 2, REF_H / 2, REF_W / world_w)
+        draw(sub)
+        img = sub.buf
+        if blur > 0:
+            img = cv2.GaussianBlur(img, (0, 0), blur * res)
+        if alpha != 1.0:
+            img = img * alpha
+        sp = Sprite(np.ascontiguousarray(img), res)
+        _cache[k] = sp
+    return sp
+
+
+def scraps(cv, t, seed=11, n=7, depth=0.55, blur=2.5, alpha=0.55, area=None,
+           drift_amp=14.0):
+    """Out-of-focus newsprint scraps drifting behind the focus (parallax + depth of field).
+
+    Baked once into a single pre-blurred sprite; the whole layer drifts as one.
+    """
     from .ease import drift
-    rng = np.random.default_rng(seed)
-    cv.push()
-    x0, y0, x1, y1 = area or (-200, -150, 2120, 1230)
-    for i in range(n):
-        w, h = rng.uniform(260, 520), rng.uniform(300, 560)
-        sp = cached(cv, ("scrap", seed, i), lambda r, w=w, h=h, i=i: newsprint(
-            w, h, r * 0.6, seed * 100 + i, headline=None, cols=2, tone="#a69d8c"))
-        x, y = rng.uniform(x0, x1), rng.uniform(y0, y1)
-        cv.place(sp, x + drift(t, 10, 13, i), y + drift(t, 8, 17, i + 3),
-                 rot=rng.uniform(-25, 25), depth=depth, shadow=SHADOW_LOW)
-    cv.pop(blur=blur, alpha=alpha)
+    x0, y0, x1, y1 = area or (-260, -200, 2180, 1280)
+
+    def draw(sub):
+        rng = np.random.default_rng(seed)
+        for i in range(n):
+            w, h = rng.uniform(260, 520), rng.uniform(300, 560)
+            sp = cached(sub, ("scrap", seed, i), lambda r, w=w, h=h, i=i: newsprint(
+                w, h, r * 0.75, seed * 100 + i, headline=None, cols=2, tone="#a69d8c"))
+            sub.place(sp, rng.uniform(x0, x1), rng.uniform(y0, y1),
+                      rot=rng.uniform(-25, 25), shadow=SHADOW_LOW)
+
+    layer = bake(cv, ("scraps", seed, n), draw, scale=0.5, blur=blur, alpha=alpha)
+    cv.place(layer, REF_W / 2 + drift(t, drift_amp, 13, seed),
+             REF_H / 2 + drift(t, drift_amp * 0.7, 17, seed + 3), depth=depth)
 
 
 # ---------------------------------------------------------------- illustrations

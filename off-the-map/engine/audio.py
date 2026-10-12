@@ -7,6 +7,8 @@ import json
 import re
 import subprocess
 
+import numpy as np
+
 
 def _run(cmd):
     return subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -100,6 +102,95 @@ class Timing:
         if cur:
             out.append((cur[0].start, cur[-1].end, " ".join(x.text for x in cur)))
         return out
+
+
+def speech_runs(path, noise_db=-35, min_len=0.20):
+    """Stretches of actual speech, as (start, end), from silence detection."""
+    total = duration(path)
+    gaps = pauses(path, noise_db, min_len)
+    runs, t = [], 0.0
+    for s, e in gaps:
+        if s > t + 0.02:
+            runs.append((t, min(s, total)))
+        t = max(t, e)
+    if t < total - 0.02:
+        runs.append((t, total))
+    return runs or [(0.0, total)]
+
+
+_ABBR = ("U.S.", "U.K.", "e.g.", "i.e.", "Mr.", "Mrs.", "Dr.", "St.", "No.", "vs.")
+
+
+def _sentences_of(text):
+    """Split into sentences without breaking on abbreviations like U.S."""
+    t = " ".join(text.split())
+    for i, a in enumerate(_ABBR):
+        t = t.replace(a, f"\x00{i}\x00")
+    parts = re.split(r"(?<=[.!?])\s+", t)
+    out = []
+    for p in parts:
+        for i, a in enumerate(_ABBR):
+            p = p.replace(f"\x00{i}\x00", a)
+        if p.strip():
+            out.append(p)
+    return out
+
+
+def align(path, text, noise_db=-35, min_len=0.20):
+    """Word-level timing for narration WITHOUT a transcription service.
+
+    Sentence boundaries are matched to real pauses in the audio by dynamic
+    programming (choosing which detected gaps are sentence ends so that each
+    sentence's share of the time best matches its share of the characters),
+    then words are spread inside each sentence by character weight.
+
+    Accurate to roughly a couple of hundred milliseconds, which is enough to
+    cue visuals. Swap in Timing.from_elevenlabs when a real transcript exists.
+    """
+    total = duration(path)
+    runs = speech_runs(path, noise_db, min_len)
+    sents = _sentences_of(text)
+    n = len(sents)
+    weights = np.array([len(s) for s in sents], float)
+    target = np.concatenate([[0.0], np.cumsum(weights) / weights.sum()])
+
+    # candidate sentence boundaries: the end of each speech run
+    cands = [0.0] + [e for _, e in runs[:-1]] + [total]
+    cands = sorted(set(round(c, 4) for c in cands))
+    m = len(cands)
+    if m - 2 < n - 1:                      # fewer pauses than sentences
+        bounds = [total * t for t in target]
+    else:
+        INF = float("inf")
+        # cost[i][j] = best cost placing boundary j (1..n-1) at candidate i
+        cost = [[INF] * (n + 1) for _ in range(m)]
+        back = [[-1] * (n + 1) for _ in range(m)]
+        cost[0][0] = 0.0
+        for j in range(1, n + 1):
+            lo, hi = (j, m - 1) if j < n else (m - 1, m - 1)
+            for i in range(lo, hi + 1):
+                want = target[j] * total
+                pen = ((cands[i] - want) / max(total, 1e-6)) ** 2
+                best, bi = INF, -1
+                for k in range(j - 1, i):
+                    if cost[k][j - 1] + pen < best:
+                        best, bi = cost[k][j - 1] + pen, k
+                cost[i][j], back[i][j] = best, bi
+        bounds, i = [total], m - 1
+        for j in range(n, 0, -1):
+            i = back[i][j]
+            bounds.append(cands[i])
+        bounds = sorted(bounds)
+
+    words = []
+    for si, sent in enumerate(sents):
+        t0, t1 = bounds[si], bounds[si + 1]
+        toks = sent.split()
+        w = np.array([len(x) + 1 for x in toks], float)
+        cum = np.concatenate([[0.0], np.cumsum(w) / w.sum()])
+        for wi, tok in enumerate(toks):
+            words.append(Word(tok, t0 + (t1 - t0) * cum[wi], t0 + (t1 - t0) * cum[wi + 1]))
+    return Timing(words)
 
 
 def pauses(path, noise_db=-35, min_len=0.25):
