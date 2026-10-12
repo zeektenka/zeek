@@ -184,17 +184,26 @@ def equation(cv, t, left, op, right, result, t0=0.0, y=520, size=118, seed=0,
 
 
 def line_chart(cv, t, series, t0=0.0, rect=(430, 300, 1100, 520), color=None,
-               title=None, label_end=None, dur=1.6, depth=0.0, seed=0, fill=True):
+               title=None, label_end=None, dur=1.6, depth=0.0, seed=0, fill=True,
+               y_range=None):
     """A line drawing itself on, for anything that falls or climbs over time.
 
     series: list of (x, y) in data units, y up.
+    y_range: (lo, hi) for the vertical axis. ALWAYS pass this for a chart about
+    a share or an index. Auto-scaling to the data's own min and max makes a fall
+    from 71 to 57 look like a fall to zero, which would misrepresent the very
+    thing the narration is careful about.
     """
     color = color or S.ACCENT
     x0, y0, w, h = rect
     d = np.asarray(series, float)
     dx = d[:, 0] - d[:, 0].min()
     dx = dx / max(dx.max(), 1e-9)
-    dy = (d[:, 1] - d[:, 1].min()) / max(d[:, 1].max() - d[:, 1].min(), 1e-9)
+    if y_range:
+        lo, hi = y_range
+    else:
+        lo, hi = d[:, 1].min(), d[:, 1].max()
+    dy = (d[:, 1] - lo) / max(hi - lo, 1e-9)
     pts = np.stack([x0 + dx * w, y0 + (1 - dy) * h], 1)
     # axes
     ax = S.cached(cv, ("axis", w), lambda r: P.paper_sheet(w + 40, 14, r, S.PAPER, 9, torn=1.6))
@@ -214,7 +223,10 @@ def line_chart(cv, t, series, t0=0.0, rect=(430, 300, 1100, 520), color=None,
             dot = S.cached(cv, "dot", lambda r: _disc(r, 13, "#fff8ee"))
             cv.place(dot, head[0], head[1], depth=depth)
     if title:
-        headline(cv, t, [title], t0=t0 - 0.15, x=x0 + 40, y=y0 - 150, size=74, depth=depth, seed=seed)
+        # centre the strip over the plot: anchoring it to the left edge pushed
+        # long titles off-frame in the two-up comparison
+        headline(cv, t, [title], t0=t0 - 0.15, x=x0 + w / 2, y=y0 - 150, size=74,
+                 depth=depth, seed=seed)
     if label_end and prog >= 0.98:
         sp = S.cached(cv, ("lce", label_end), lambda r: text_sprite(label_end, S.ANTON, 86, r, color))
         S.slap(cv, sp, pts[-1][0] + 40, pts[-1][1] + 30, t, t0 + 0.2 + dur, -3,

@@ -60,11 +60,11 @@ def fed_balance(cue):
         sh.cam_drift(cv, t, 0.04, 10, seed=72)
         sh.base(cv, t, n=5)
         sh.line_chart(cv, t, pts, t0=0.15, rect=(440, 360, 1010, 420),
-                      title="THE FED'S BALANCE SHEET", dur=2.2, seed=21)
+                      title="THE FED'S BALANCE SHEET", dur=2.2, seed=21, y_range=(0, 10))
         t_d = cue("roughly doubled")
         if t > t_d - 0.4:
             sh.big_stat(cv, t, "$8.9tn", label="FROM $4.2 TRILLION", t0=t_d - 0.3,
-                        x=1430, y=900, size=150, sub="FEB 2020 → APR 2022", seed=22)
+                        x=1300, y=905, size=140, sub="FEB 2020 TO APR 2022", seed=22)
         S.finish(cv)
     return draw
 
@@ -251,10 +251,11 @@ def two_economies(cue):
         sh.cam_drift(cv, t, 0.03, 11, seed=84)
         sh.base(cv, t, n=4)
         sh.line_chart(cv, t, us, t0=0.15, rect=(190, 420, 700, 300), color=S.KRAFT,
-                      title="AMERICA KEPT PRODUCING", dur=1.8, seed=25, fill=False)
+                      title="AMERICA KEPT PRODUCING", dur=1.8, seed=25, fill=False,
+                      y_range=(0, 110))
         sh.line_chart(cv, t, zw, t0=cue("production was falling off a cliff") - 0.4,
                       rect=(1030, 420, 700, 300), color=S.ACCENT,
-                      title="ZIMBABWE DID NOT", dur=1.8, seed=26)
+                      title="ZIMBABWE DID NOT", dur=1.8, seed=26, y_range=(0, 110))
         S.finish(cv)
     return draw
 
@@ -327,10 +328,10 @@ def reserve_decline(cue):
         sh.cam_drift(cv, t, 0.04, 10, seed=89)
         sh.base(cv, t, n=5)
         sh.line_chart(cv, t, pts, t0=0.15, rect=(450, 380, 1020, 400),
-                      title="THE DOLLAR'S SHARE OF RESERVES", dur=2.2, seed=28)
+                      title="THE DOLLAR'S SHARE OF RESERVES", dur=2.2, seed=28, y_range=(0, 100))
         t_d = cue("Today it is nearer fifty-seven")
         if t > t_d - 0.4:
-            sh.big_stat(cv, t, "70% → 57%", t0=t_d - 0.3, x=1180, y=910, size=130,
+            sh.big_stat(cv, t, "70% TO 57%", t0=t_d - 0.3, x=1150, y=915, size=118,
                         sub="SLOW, BUT REAL", seed=29)
         S.finish(cv)
     return draw

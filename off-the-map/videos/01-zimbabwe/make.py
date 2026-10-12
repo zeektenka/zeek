@@ -8,6 +8,7 @@ Timings come from the audio itself (offline forced alignment), so regenerating
 the voiceover re-times the animation with no code changes.
 """
 import argparse
+import hashlib
 import os
 import subprocess
 import sys
@@ -102,10 +103,26 @@ def music_bed(path, length):
     return path
 
 
+def chunk_dir(out):
+    """Chunk directory keyed by a hash of the code that produces the frames, so
+    resuming can never silently splice chunks rendered from older scene code."""
+    h = hashlib.sha1()
+    root = os.path.join(HERE, "..", "..")
+    for rel in sorted(os.listdir(os.path.join(root, "engine"))):
+        if rel.endswith(".py"):
+            h.update(open(os.path.join(root, "engine", rel), "rb").read())
+    for rel in sorted(os.listdir(HERE)):
+        if rel.endswith(".py"):
+            h.update(open(os.path.join(HERE, rel), "rb").read())
+    return os.path.splitext(out)[0] + f".chunks-{h.hexdigest()[:10]}"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("mode", choices=["sheet", "preview", "master"])
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--resume", action="store_true",
+                    help="reuse chunks from an interrupted run of the SAME code")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
 
@@ -129,7 +146,8 @@ def main():
                       swells=[(0.0, 6.0, 4.0)], target_lufs=-14.0, length=v.duration)
     print("mix loudness:", round(audio.loudness(mixed), 2), "LUFS")
     out = os.path.join(OUT, "zimbabwe_act1_1080p60.mp4")
-    v.render(out, profile="master", workers=a.workers, chunk=4.0, audio=mixed)
+    v.render(out, profile="master", workers=a.workers, chunk=4.0, audio=mixed,
+             work_dir=chunk_dir(out), resume=a.resume)
     print(out)
 
 

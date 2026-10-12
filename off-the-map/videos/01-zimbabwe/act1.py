@@ -233,10 +233,11 @@ def black_friday_chart(cue):
         sh.cam_drift(cv, t, 0.04, 10, seed=13)
         sh.base(cv, t, n=5, light=(0.52, 0.46))
         sh.line_chart(cv, t, pts, t0=0.1, rect=(430, 330, 1060, 470),
-                      title="THE ZIMBABWE DOLLAR", dur=2.2, seed=10, label_end=None, fill=False)
+                      title="THE ZIMBABWE DOLLAR", dur=2.2, seed=10, label_end=None, fill=False,
+                      y_range=(0, 105))
         t_f = cue("fell by roughly seventy-two percent")
         if t > t_f - 0.3:
-            sh.big_stat(cv, t, "−72%", t0=t_f - 0.2, x=1420, y=880, size=190, glow=True,
+            sh.big_stat(cv, t, "−72%", t0=t_f - 0.2, x=1380, y=890, size=180, glow=True,
                         sub="IN ONE DAY", seed=9)
         S.finish(cv)
     return draw
@@ -329,7 +330,7 @@ def output_falls(cue):
         sh.cam_drift(cv, t, 0.04, 10, seed=19)
         sh.base(cv, t, n=5)
         sh.line_chart(cv, t, pts, t0=0.15, rect=(450, 350, 1020, 450),
-                      title="FARM OUTPUT", dur=2.4, seed=12)
+                      title="FARM OUTPUT", dur=2.4, seed=12, y_range=(0, 105))
         sh.ledger(cv, t, ["NO EQUIPMENT", "NO CREDIT", "NO EXPERTISE"],
                   t0=cue("without equipment") - 0.25, x=1260, y=430, step=118, size=50,
                   seed=7, numbered=False, strike=(0, 1, 2))
