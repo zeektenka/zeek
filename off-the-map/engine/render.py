@@ -107,23 +107,39 @@ class Video:
 
     # ------------------------------------------------------------------ video
     def render(self, path, t0=0.0, t1=None, profile="preview", workers=None,
-               chunk=4.0, audio=None):
+               chunk=4.0, audio=None, work_dir=None, resume=True):
         """Render [t0, t1) in chunks of `chunk` seconds across processes, then
-        join them losslessly and mux audio (if given)."""
+        join them losslessly and mux audio (if given).
+
+        Chunks are written to a stable directory and finished ones are skipped
+        on a re-run, so a crash part-way through a feature-length render costs
+        only the chunk that was in flight. Pass resume=False to force a redo.
+        """
         t1 = self.duration if t1 is None else t1
         n0, n1 = int(round(t0 * self.fps)), int(round(t1 * self.fps))
         step = max(1, int(chunk * self.fps))
         jobs = [(a, min(a + step, n1)) for a in range(n0, n1, step)]
-        tmp = tempfile.mkdtemp(prefix="otm_render_")
+        tmp = work_dir or os.path.splitext(path)[0] + ".chunks"
+        os.makedirs(tmp, exist_ok=True)
+        if not resume:
+            for f in os.listdir(tmp):
+                os.remove(os.path.join(tmp, f))
         workers = workers or os.cpu_count() or 2
         global _VIDEO
         _VIDEO = self
         try:
+            todo = [(a, b, os.path.join(tmp, f"{i:05d}.mp4"), profile)
+                    for i, (a, b) in enumerate(jobs)]
+            parts = [t[2] for t in todo]
+            pending = [t for t in todo if not os.path.exists(t[2])]
+            done = len(todo) - len(pending)
+            if done:
+                print(f"resuming: {done}/{len(todo)} chunks already rendered")
             ctx = mp.get_context("fork")
             with ProcessPoolExecutor(workers, mp_context=ctx) as ex:
-                parts = list(ex.map(_render_chunk,
-                                    [(a, b, os.path.join(tmp, f"{i:05d}.mp4"), profile)
-                                     for i, (a, b) in enumerate(jobs)]))
+                for i, _ in enumerate(ex.map(_render_chunk, pending), 1):
+                    if i % 5 == 0 or i == len(pending):
+                        print(f"  {done + i}/{len(todo)} chunks", flush=True)
             lst = os.path.join(tmp, "list.txt")
             with open(lst, "w") as f:
                 f.writelines(f"file '{p}'\n" for p in parts)
@@ -134,7 +150,8 @@ class Video:
             cmd += ["-c:v", "copy", "-movflags", "+faststart", path]
             subprocess.run(cmd, check=True)
         finally:
-            shutil.rmtree(tmp, ignore_errors=True)
+            if os.path.exists(path):
+                shutil.rmtree(tmp, ignore_errors=True)
         return path
 
 
@@ -147,10 +164,13 @@ def _render_chunk(args):
     cmd = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24",
            "-s", f"{v.width}x{v.height}", "-r", str(v.fps), "-i", "-",
            *PROFILES[profile], "-r", str(v.fps), out]
+    part = out[:-4] + ".part.mp4"          # keep the extension so ffmpeg picks a muxer
+    cmd[-1] = part
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     for n in range(a, b):
         p.stdin.write(v.frame(n / v.fps).tobytes())
     p.stdin.close()
     if p.wait() != 0:
         raise RuntimeError(f"ffmpeg failed on frames {a}-{b}")
+    os.replace(part, out)
     return out

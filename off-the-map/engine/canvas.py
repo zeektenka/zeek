@@ -77,7 +77,7 @@ class Sprite:
 
     def shadow(self, blur):
         """Black, blurred copy of the alpha, padded by 3x blur (world units)."""
-        key = round(blur, 2)
+        key = round(blur * 2) / 2          # 0.5-unit steps: near-identical blurs share one copy
         if key not in self._shadows:
             pad = int(math.ceil(blur * self.res * 3)) + 2
             a = np.pad(self.img[..., 3], pad)

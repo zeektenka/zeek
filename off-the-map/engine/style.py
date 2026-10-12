@@ -28,7 +28,25 @@ SHADOW_LOW = (3, 5, 5, 0.45)     # for things lying flat on the page
 SHADOW_HIGH = (14, 22, 18, 0.5)  # for things lifted towards camera
 
 # ---------------------------------------------------------------- caching
-_cache = {}
+# Bounded: a feature-length render touches hundreds of sprites, and an unbounded
+# cache is what OOM-killed the first master render.
+_cache = __import__("collections").OrderedDict()
+CACHE_BYTES = 700_000_000
+
+
+def _cache_put(k, sprite):
+    _cache[k] = sprite
+    total = 0
+    for key in reversed(_cache):
+        v = _cache[key]
+        total += getattr(getattr(v, "img", None), "nbytes", 0)
+        if hasattr(v, "_shadows"):
+            total += sum(sp.img.nbytes for sp, _ in v._shadows.values())
+        if total > CACHE_BYTES:
+            while next(iter(_cache)) != key:
+                _cache.popitem(last=False)
+            _cache.popitem(last=False)
+            break
 
 
 def cached(cv, key, build, oversample=1.0):
@@ -36,16 +54,22 @@ def cached(cv, key, build, oversample=1.0):
     oversample > 1 for things the camera will push in on."""
     res = cv.k * oversample
     k = (key, round(res, 3))
-    if k not in _cache:
-        _cache[k] = build(res)
-    return _cache[k]
+    if k in _cache:
+        _cache.move_to_end(k)
+        return _cache[k]
+    sp = build(res)
+    _cache_put(k, sp)
+    return sp
+
+
+_tiles = {}
 
 
 def tile(seed=1, size=1024):
     k = ("tile", seed, size)
-    if k not in _cache:
-        _cache[k] = P.paper_tile(size, seed)
-    return _cache[k]
+    if k not in _tiles:
+        _tiles[k] = P.paper_tile(size, seed)
+    return _tiles[k]
 
 
 # ---------------------------------------------------------------- background
@@ -133,7 +157,7 @@ def bake(cv, key, draw, world_w=2560, world_h=1440, scale=0.5, blur=0.0, alpha=1
         if alpha != 1.0:
             img = img * alpha
         sp = Sprite(np.ascontiguousarray(img), res)
-        _cache[k] = sp
+        _cache_put(k, sp)
     return sp
 
 
@@ -155,7 +179,7 @@ def scraps(cv, t, seed=11, n=7, depth=0.55, blur=2.5, alpha=0.55, area=None,
             sub.place(sp, rng.uniform(x0, x1), rng.uniform(y0, y1),
                       rot=rng.uniform(-25, 25), shadow=SHADOW_LOW)
 
-    layer = bake(cv, ("scraps", seed, n), draw, scale=0.5, blur=blur, alpha=alpha)
+    layer = bake(cv, ("scraps", seed, n), draw, scale=0.42, blur=blur, alpha=alpha)
     cv.place(layer, REF_W / 2 + drift(t, drift_amp, 13, seed),
              REF_H / 2 + drift(t, drift_amp * 0.7, 17, seed + 3), depth=depth)
 
@@ -360,8 +384,13 @@ def slap(cv, sprite, x, y, t, t0, rot=0.0, scale=1.0, dur=0.42, depth=1.0,
     a = alpha * ramp(t, t0, dur * 0.3, "out")
     sh = None
     if shadow:
+        # The offset and opacity carry the "landing" feel; the blur radius stays
+        # fixed because every distinct blur builds and caches a new blurred copy.
         hi = SHADOW_HIGH
-        sh = tuple(hi[i] + (shadow[i] - hi[i]) * u for i in range(4))
+        sh = (hi[0] + (shadow[0] - hi[0]) * u,
+              hi[1] + (shadow[1] - hi[1]) * u,
+              shadow[2],
+              hi[3] + (shadow[3] - hi[3]) * u)
     cv.place(sprite, x, y, s, rot + spin * (1 - u) ** 2, a, depth, anchor, shadow=sh)
 
 
