@@ -27,13 +27,16 @@ Alternative text if you want more mystery: **ONE LOAF**.
 >
 > CHAPTERS
 > 0:00 A loaf of bread
-> 0:11 When money stops meaning anything
+> 0:07 When money stops meaning anything
 > 0:14 Zimbabwe used to work
-> 0:49 Three bills it could not pay
+> 0:34 The breadbasket (and why that's disputed)
+> 0:51 Three bills it could not pay
 > 0:55 1997: the war veterans
-> 1:29 Black Friday
+> 1:09 The maths nobody budgeted for
+> 1:28 Black Friday
 > 1:47 A foreign war
-> 2:01 The farms
+> 2:04 The farms
+> 2:11 Genuinely contested
 > 2:38 Less coming in, more going out
 >
 > SOURCES

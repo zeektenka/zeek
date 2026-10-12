@@ -57,7 +57,13 @@ it would have left an awkward join and you'd regenerate the whole part anyway.
   validated against the scripts, so they will resolve.
 - **Zimbabwe Act 1 rendered**: 2:46, 1080p60, narration + ducked music bed,
   mixed to −14.2 LUFS.
-- **Upload packages** written for both (`upload.md`).
+- **Upload packages** written for both (`upload.md`), with Video 1's chapter
+  times checked against the real shot starts.
+- **Thumbnails** for both (`out/<video>/thumbnail.png`).
+- **Silent animatics** of both complete videos (`tools/animatic.py`), timed from
+  the script at the narrator's measured pace. They show the whole visual flow
+  end to end. They are not the finished videos — no narration, and every shot
+  shifts slightly once real audio lands.
 
 ## Decisions worth your sign-off
 
