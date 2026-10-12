@@ -71,7 +71,13 @@ it would have left an awkward join and you'd regenerate the whole part anyway.
    every image is drawn in code. See the network note in `README.md` — allowing
    Wikimedia/Pexels would open up real cutouts via the IS-Net model, which is
    already installed and tested.
-4. **Timing without transcription.** Rather than spend credits on speech-to-text,
+4. **No sound effects yet.** The pipeline calls for paper rustle, tape rip,
+   stamp and whoosh hits. I could synthesise those here, but I can't *listen* to
+   what I'd be shipping, and badly judged effects would cheapen the whole thing
+   faster than having none. `engine/audio.py: mix` already takes an `sfx` list of
+   `(time, path, gain_db)`, so they drop straight in once you have files you've
+   actually heard — generated in ElevenLabs, or anything licensed.
+5. **Timing without transcription.** Rather than spend credits on speech-to-text,
    I wrote an offline forced aligner (`engine/audio.py: align`). It matched a
    known ground truth to within 0.4 s. If you'd rather have exact word timings,
    `Timing.from_elevenlabs` is still there and takes the STT JSON.

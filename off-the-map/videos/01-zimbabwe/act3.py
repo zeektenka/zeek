@@ -114,9 +114,11 @@ def the_question(cue):
     def draw(cv, t):
         sh.cam_drift(cv, t, 0.06, 9, seed=56)
         sh.base(cv, t, n=7)
+        sh.headline(cv, t, ["NOT ABOUT", "PRINTING PRESSES"], t0=0.0, x=480, y=250,
+                    size=84, accent_line=None, seed=72)
         sh.headline(cv, t, ["WHO TRUSTS YOU.", "WHAT YOU SELL.", "WHO NEEDS YOUR MONEY."],
-                    t0=cue("It is a question about who trusts you") - 0.3, x=480, y=320,
-                    size=92, accent_line=2, seed=69)
+                    t0=cue("It is a question about who trusts you") - 0.3, x=480, y=560,
+                    size=86, accent_line=2, seed=69)
         S.finish(cv)
     return draw
 
