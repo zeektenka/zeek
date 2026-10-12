@@ -121,8 +121,8 @@ def priced_in_dollars(cue):
 def nigeria_vietnam(cue):
     def draw(cv, t):
         W = world()
-        sh.map_shot(cv, t, W, ["NGA", "VNM"], highlight={"NGA": S.KRAFT, "VNM": S.KRAFT},
-                    fill=0.8, lift_at=0.4, seed=11,
+        sh.map_shot(cv, t, W, ["NGA", "VNM"], highlight={"NGA": S.ACCENT, "VNM": S.ACCENT},
+                    fill=0.62, lift_at=0.4, seed=11,
                     label=[(8.0, 9.0, "NIGERIA"), (106.0, 16.0, "VIETNAM")])
         a, b = W.point(8.0, 9.0), W.point(106.0, 16.0)
         sh.arrow(cv, t, cue("buying machinery from Vietnam") - 0.3, a, b, dur=1.2,

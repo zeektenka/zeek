@@ -26,7 +26,7 @@ says what is finished and what is blocked.
 | `engine/style.py` | Design system tokens (palette, fonts, shadows) and collage pieces: desk background, newsprint scraps, banknote, loaf, halftone bank facade, case folder, title strips. Motion helpers: `slap` (drop-onto-page entrance), `write_on`. |
 | `engine/geo.py` | Natural Earth borders as vectors, projected every frame: real zooms from continent to city, highlighted countries lift off as paper cutouts. |
 | `engine/post.py` | Radial light, vignette, glow, film grain (also stops banding after YouTube compression). |
-| `engine/render.py` | `Video` timeline: stills, contact sheets (stage 8), sub-frame motion blur, chunked parallel rendering to ffmpeg, audio mux. Profiles: `preview`, `master` (x264 CRF 14), `master10` (x265 10-bit). |
+| `engine/render.py` | `Video` timeline: stills, contact sheets (stage 8), sub-frame motion blur, chunked parallel rendering to ffmpeg, audio mux. Profiles: `preview`, `master` (x264 CRF 18, bitrate-capped), `master10` (x265 10-bit). |
 | `engine/audio.py` | Stage 6 and 9: join voiceover parts, word timestamps from ElevenLabs speech-to-text JSON (`Timing.at("loaf of bread")`), silence fallback, music ducking (sidechain), swells, sound effects, two-pass loudnorm to -14 LUFS. |
 | `engine/cutout.py` | Background removal for photo cutouts (IS-Net, rembg's general-use model, onnxruntime on CPU). |
 | `engine/shots.py` | Shot templates (headline, big stat, ledger, cards, equation, line chart, two-sided card, map shot, counter, arrow, share grid) and `Reel`, which turns a list of (narration phrase, shot) into a timed video. |
