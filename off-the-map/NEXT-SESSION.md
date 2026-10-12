@@ -65,6 +65,28 @@ it would have left an awkward join and you'd regenerate the whole part anyway.
   end to end. They are not the finished videos — no narration, and every shot
   shifts slightly once real audio lands.
 
+## Where the rendered files are
+
+Renders are **not in git** (`out/` is ignored — a 1.1 GB master does not belong
+in a repo) and this container is temporary, so treat the video files as
+disposable. Everything needed to recreate them byte-for-byte is committed:
+
+```bash
+python3 videos/01-zimbabwe/make.py master     # rebuilds the 1080p60 master
+```
+
+Renders now resume, so an interrupted one picks up where it stopped rather than
+starting over.
+
+| File | What it is |
+| --- | --- |
+| `zimbabwe_act1_1080p60.mp4` | 1.11 GB master, 53 Mbps. Archive quality. |
+| `zimbabwe_act1_UPLOAD.mp4` | 239 MB, 11.4 Mbps — **this is the one to upload**, at YouTube's recommended 1080p60 rate. |
+| `zimbabwe_act1_REVIEW_720p.mp4` | 9.9 MB, for watching on a phone. |
+
+If you want the upload file off the container, say so and I'll put it somewhere
+you can fetch it — it is too big to attach in chat (30 MB limit).
+
 ## Decisions worth your sign-off
 
 1. **Render spec.** I rendered 1080p60, not 4K60. On this 4-CPU container 4K60
