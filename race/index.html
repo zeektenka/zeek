@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Midnight Circuit</title>
+<style>
+  :root { --cyan: #00e5ff; --pink: #ff2bd6; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: Inter, 'Helvetica Neue', Arial, sans-serif; }
+  #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage { position: relative; width: 1280px; height: 720px; transform-origin: center; overflow: hidden; background: #000; }
+  #stage canvas { position: absolute; inset: 0; width: 1280px; height: 720px; display: block; }
+  .hud { position: absolute; inset: 0; pointer-events: none; color: #fff; }
+  .bar { position: absolute; left: 0; right: 0; height: 40px; background: #000; }
+  .bar.top { top: 0; } .bar.bottom { bottom: 0; }
+  .title { position: absolute; left: 50%; top: 46%; text-align: center; white-space: nowrap; }
+  .title .t1 { font-weight: 900; font-size: 104px; letter-spacing: -2px; line-height: .9; color: #fff;
+    text-shadow: 0 0 24px rgba(0,229,255,.75), 6px 6px 0 var(--pink); }
+  .title .t1 span { display: block; font-size: 126px; color: transparent; -webkit-text-stroke: 3px var(--cyan); text-shadow: 0 0 30px rgba(0,229,255,.6); }
+  .title .t2 { margin-top: 18px; font-weight: 800; font-size: 26px; letter-spacing: 3px; }
+  .title .t2 i { display: block; font-style: normal; font-size: 16px; letter-spacing: 8px; opacity: .75; margin-top: 8px; }
+  .lights { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; padding: 12px 18px; background: rgba(8,8,12,.85); border-radius: 12px; border: 1px solid #333; transition: none; }
+  .lights i { width: 38px; height: 38px; border-radius: 50%; background: #2a0606; box-shadow: inset 0 0 8px #000; }
+  .lights i.on { background: radial-gradient(circle at 40% 35%, #fff 0 8%, #ff3030 30%, #b00000 100%); box-shadow: 0 0 22px 6px rgba(255,30,30,.85); }
+  .go { position: absolute; left: 50%; top: 45%; font-weight: 900; font-size: 230px; color: #3dff7a; text-shadow: 0 0 40px rgba(61,255,122,.8), 10px 10px 0 #002a10; opacity: 0; }
+  .race { position: absolute; left: 34px; top: 62px; width: 300px; font-weight: 800; opacity: 0; }
+  .race .lap { display: flex; justify-content: space-between; align-items: baseline; background: linear-gradient(90deg, var(--pink), #8a2be2); padding: 6px 12px; font-size: 20px; letter-spacing: 1px; transform: skewX(-12deg); }
+  .race .clock { font-variant-numeric: tabular-nums; font-size: 18px; }
+  .race .row { display: flex; align-items: center; gap: 10px; background: rgba(6,6,14,.82); padding: 6px 12px; margin-top: 3px; font-size: 17px; transform: skewX(-12deg); }
+  .race .pos { width: 30px; color: var(--cyan); }
+  .chip { width: 6px; height: 20px; display: inline-block; }
+  .race .nm { flex: 1; }
+  .race .gap { font-variant-numeric: tabular-nums; font-size: 14px; opacity: .85; }
+  .speeds { position: absolute; right: 34px; bottom: 60px; width: 330px; opacity: 0; }
+  .spd { display: flex; align-items: center; gap: 10px; background: rgba(6,6,14,.82); padding: 4px 14px; margin-top: 4px; transform: skewX(-12deg); font-weight: 800; }
+  .spd .nm { flex: 1; font-size: 15px; letter-spacing: 1px; }
+  .spd .kmh { font-size: 34px; font-variant-numeric: tabular-nums; width: 80px; text-align: right; font-weight: 900; }
+  .spd .unit { font-size: 11px; opacity: .7; }
+  .spd .gear { width: 30px; height: 30px; display: grid; place-items: center; background: #fff; color: #000; font-size: 18px; font-weight: 900; }
+  .slomo { position: absolute; right: 34px; top: 62px; font-weight: 900; letter-spacing: 3px; font-size: 18px; opacity: 0; display: flex; align-items: center; gap: 10px; }
+  .slomo i { width: 12px; height: 12px; border-radius: 50%; background: #ff2030; box-shadow: 0 0 12px #ff2030; }
+  .caption { position: absolute; left: 50%; bottom: 92px; font-weight: 900; font-size: 78px; letter-spacing: -1px; white-space: nowrap; opacity: 0;
+    color: #fff; text-shadow: 0 0 26px rgba(255,43,214,.8), 5px 5px 0 rgba(0,0,0,.6); }
+  .winner { position: absolute; left: 50%; top: 47%; text-align: center; opacity: 0; white-space: nowrap; }
+  .winner .w1 { font-weight: 900; font-size: 34px; letter-spacing: 18px; color: #ffd400; text-shadow: 0 0 18px rgba(255,212,0,.8); }
+  .winner .w2 { font-weight: 900; font-size: 140px; line-height: 1; letter-spacing: -3px; text-shadow: 0 0 40px rgba(255,30,60,.85), 8px 8px 0 #ff1e3c; }
+  .winner .w3 { font-weight: 800; font-size: 20px; letter-spacing: 6px; margin-top: 10px; opacity: .85; }
+  #ui { position: fixed; inset: 0; display: grid; place-items: center; z-index: 5; }
+  #ui button { font: 900 22px Inter, sans-serif; letter-spacing: 4px; color: #fff; background: linear-gradient(90deg, var(--pink), #8a2be2); border: 0; padding: 18px 40px; cursor: pointer; transform: skewX(-12deg); box-shadow: 0 0 30px rgba(255,43,214,.6); }
+  #scrub { position: fixed; left: 0; right: 0; bottom: 0; height: 6px; background: rgba(255,255,255,.12); z-index: 6; cursor: pointer; }
+  #scrub div { height: 100%; width: 0; background: var(--cyan); }
+  body.capture #ui, body.capture #scrub { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="wrap"><div id="stage"><canvas id="c"></canvas></div></div>
+<div id="ui"><button id="play">▶ PLAY</button></div>
+<div id="scrub"><div></div></div>
+<audio id="audio" src="midnight-circuit.m4a" preload="auto"></audio>
+<script type="module">
+  import { createFilm } from './scene.js';
+  import { createHud } from './hud.js';
+  import { DURATION } from './timeline.js';
+
+  const capture = new URLSearchParams(location.search).has('capture');
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('c');
+  const film = createFilm(canvas, { width: 1280, height: 720, pixelRatio: capture ? 1 : Math.min(devicePixelRatio, 1.5) });
+  const hud = createHud(stage);
+  const frame = (t) => { const { hud: h, cam } = film.render(t); hud(h, cam); };
+
+  if (capture) {
+    document.body.classList.add('capture');
+    window.renderFrame = (t) => { frame(t); return new Promise((r) => requestAnimationFrame(() => r(true))); };
+    window.film = film; window.filmReady = true;
+  } else {
+    const fit = () => { const k = Math.min(innerWidth / 1280, innerHeight / 720); stage.style.transform = `scale(${k})`; };
+    addEventListener('resize', fit); fit();
+    const audio = document.getElementById('audio'), ui = document.getElementById('ui'), bar = document.querySelector('#scrub div');
+    let hasAudio = true, playing = false, clock = 0, last = performance.now();
+    audio.addEventListener('error', () => { hasAudio = false; });
+    const now = () => (hasAudio && !audio.paused ? audio.currentTime : clock);
+    const seek = (t) => { clock = Math.max(0, Math.min(DURATION, t)); if (hasAudio) audio.currentTime = clock; };
+    const play = () => { ui.style.display = 'none'; playing = true; if (now() >= DURATION - 0.05) seek(0); if (hasAudio) audio.play().catch(() => { hasAudio = false; }); };
+    const pause = () => { playing = false; audio.pause(); ui.style.display = ''; document.getElementById('play').textContent = '▶ RESUME'; };
+    document.getElementById('play').onclick = play;
+    addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+      if (e.key === 'r') { seek(0); play(); }
+      if (e.key === 'ArrowRight') seek(now() + 5);
+      if (e.key === 'ArrowLeft') seek(now() - 5);
+    });
+    document.getElementById('scrub').onclick = (e) => seek((e.clientX / innerWidth) * DURATION);
+    const loop = (ts) => {
+      const dt = (ts - last) / 1000; last = ts;
+      if (playing && !(hasAudio && !audio.paused)) clock += dt;
+      if (hasAudio && !audio.paused) clock = audio.currentTime;
+      if (clock >= DURATION) { clock = DURATION; if (playing) { playing = false; ui.style.display = ''; document.getElementById('play').textContent = '↻ REPLAY'; } }
+      bar.style.width = (clock / DURATION) * 100 + '%';
+      frame(Math.min(clock, DURATION - 1e-3));
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+</script>
+</body>
+</html>
