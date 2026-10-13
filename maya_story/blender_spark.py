@@ -146,8 +146,8 @@ def star_mesh(name, mat, r_out=0.16, r_in=0.07, depth=0.07):
 
 def ground_height(x, y):
     h = 0.06 * math.sin(x * 0.9) * math.cos(y * 0.7) + 0.04 * math.sin(x * 2.3 + y * 1.7)
-    h += max(0.0, y - 6) ** 1.5 * 0.08 + max(0.0, -y - 14) * 0.15  # hills behind / beyond
-    h += 0.9 * math.sin(x * 0.12 + 1.0) * smooth((y - 12) / 10)
+    h += max(0.0, y - 10) ** 1.3 * 0.03 + max(0.0, -y - 18) * 0.08  # low hills behind / beyond
+    h += 0.6 * math.sin(x * 0.12 + 1.0) * smooth((y - 14) / 10)
     d = math.hypot(x - STAR_X, y)
     if d < 0.9:  # crater
         h -= 0.12 * math.cos(d / 0.9 * math.pi / 2) ** 2
@@ -282,22 +282,19 @@ def build_world():
 
 
 def build_set():
-    grass = principled("Ground", (0.035, 0.05, 0.075), roughness=0.95)
+    grass = principled("Ground", (0.05, 0.065, 0.1), roughness=0.95)
     build_ground(grass)
 
     moon_mat = emissive("Moon", (0.95, 0.93, 0.82), 6.0)
     prim("sphere", "Moon", moon_mat, loc=(-38, 70, 26), scale=(4, 4, 4), segments=48, ring_count=24)
-    halo = emissive("MoonHalo", (0.25, 0.3, 0.55), 0.15)
-    h = prim("sphere", "MoonHalo", halo, loc=(-38, 71, 26), scale=(7, 7, 7), segments=32, ring_count=16)
-    h.visible_shadow = False
 
     # moonlight + cool rim from behind + faint warm bounce
     sun = bpy.data.lights.new("MoonLight", "SUN")
-    sun.energy, sun.color, sun.angle = 0.9, (0.55, 0.65, 1.0), math.radians(1.5)
+    sun.energy, sun.color, sun.angle = 1.5, (0.55, 0.65, 1.0), math.radians(1.5)
     o = link(bpy.data.objects.new("MoonLight", sun))
     o.rotation_euler = Euler((math.radians(55), 0, math.radians(200)))
     rim = bpy.data.lights.new("RimLight", "SUN")
-    rim.energy, rim.color = 1.4, (0.45, 0.5, 1.0)
+    rim.energy, rim.color = 2.2, (0.45, 0.5, 1.0)
     o = link(bpy.data.objects.new("RimLight", rim))
     o.rotation_euler = Euler((math.radians(70), 0, math.radians(170)))
 
@@ -407,13 +404,9 @@ def build_bolt():
 
 
 def build_star(name, scale=1.0):
-    mat = emissive(name + "Mat", (1.0, 0.85, 0.45), 0.0)
+    mat = emissive(name + "Mat", (1.0, 0.7, 0.2), 0.0)
     star = star_mesh(name, mat, 0.16 * scale, 0.07 * scale, 0.07 * scale)
-    halo_mat = emissive(name + "HaloMat", (1.0, 0.75, 0.35), 0.0)
-    halo = prim("sphere", name + "Halo", halo_mat, scale=(0.1 * scale,) * 3, segments=16, ring_count=8)
-    halo.parent = star
-    halo.location = (0, 0, 0)
-    halo.visible_shadow = False
+    halo_mat = mat  # glow comes from the bloom pass in finish()
     light = bpy.data.lights.new(name + "Light", "POINT")
     light.color, light.shadow_soft_size = (1.0, 0.8, 0.45), 0.15
     o = link(bpy.data.objects.new(name + "Light", light), star)
@@ -460,7 +453,7 @@ def gift_world(t, core):
     if not 50.3 <= t <= 53.45:
         return None
     k = smooth((t - 50.3) / 3.1)
-    start = Vector((9, 26, 16))
+    start = Vector((-4, 16, 9))
     p = start.lerp(core, k)
     p += Vector((0.6 * math.sin(k * 6.3), 0, 0)) * (1 - k)
     return p, 1.2, 0.55
@@ -472,25 +465,25 @@ def camera_at(t, b):
 
     rx = story.robot_x(t) / 100.0
     shots = [
-        (0.0, 8.2, ((-0.6, -8.5, 1.9), (-3.0, 0, 1.0), 32), ((-2.0, -3.4, 1.15), (-3.0, 0, 0.75), 38)),
-        (8.2, 11.2, ((7.5, -11, 1.6), (-2.0, 6, 3.6), 22), ((7.2, -10.5, 1.5), (-1.0, 4, 2.4), 22)),
-        (11.2, 16.0, ((-1.55, -2.0, 1.35), (-3.0, 0, 1.25), 42), ((-1.6, -2.1, 1.3), (-3.0, 0, 1.2), 42)),
+        (0.0, 8.2, ((0.8, -11, 2.4), (-3.0, 0, 1.3), 30), ((-1.2, -6.2, 1.7), (-3.0, 0, 1.15), 36)),
+        (8.2, 11.2, ((8.0, -15, 1.8), (-2.0, 6, 4.0), 22), ((7.6, -14.5, 1.7), (-1.0, 4, 2.6), 22)),
+        (11.2, 16.0, ((-0.4, -3.3, 1.9), (-3.0, 0, 1.6), 40), ((-0.5, -3.4, 1.85), (-3.0, 0, 1.55), 40)),
         (16.0, 28.0, None, None),
-        (28.0, 36.2, ((4.0, -2.4, 1.55), (1.9, 0, 0.9), 35), ((3.75, -2.0, 1.45), (1.95, 0, 0.95), 38)),
-        (36.2, 44.2, ((3.15, -1.35, 1.25), (1.85, 0, 1.05), 38), ((3.0, -1.2, 1.15), (1.85, 0, 1.05), 40)),
+        (28.0, 36.2, ((5.3, -4.1, 2.0), (2.1, 0, 1.15), 34), ((4.8, -3.5, 1.9), (2.1, 0, 1.2), 36)),
+        (36.2, 44.2, ((4.0, -2.7, 1.55), (1.95, 0, 1.25), 36), ((3.75, -2.35, 1.5), (1.95, 0, 1.25), 38)),
         (44.2, 50.3, None, None),
-        (50.3, 54.6, ((3.9, -3.0, 0.9), (2.3, 0, 2.2), 30), ((3.4, -2.3, 1.15), (1.85, 0, 1.0), 34)),
-        (54.6, 60.1, ((3.5, -2.5, 1.25), (1.8, 0, 1.05), 34), ((5.5, -13, 4.2), (1.4, 2, 2.6), 30)),
+        (50.3, 54.6, ((5.3, -4.5, 1.2), (2.4, 0, 2.7), 28), ((4.7, -3.7, 1.5), (1.9, 0, 1.35), 32)),
+        (54.6, 60.1, ((4.7, -3.7, 1.6), (1.85, 0, 1.35), 32), ((6.5, -16, 4.6), (1.4, 2, 2.6), 30)),
     ]
     for i, (t0, t1, a, z) in enumerate(shots):
         if not t0 <= t < t1:
             continue
         if i == 3:  # tracking walk, slightly ahead of Bolt
-            return look((rx + 0.9, -4.6, 1.25), (rx + 0.9, 0, 0.9), 32)
+            return look((rx + 1.0, -7.5, 1.6), (rx + 1.0, 0, 1.2), 32)
         if i == 6:  # low angle, tilt up after the rising star
             k = smooth((t - 44.2) / 5.0)
-            tgt = Vector((1.9, 0, 1.2)).lerp(Vector((0, 20, 16)), k)
-            return look((3.6, -3.2, 0.35), tgt, story.lerp(30, 24, k))
+            tgt = Vector((1.9, 0, 1.4)).lerp(Vector((0, 20, 16)), k)
+            return look((4.8, -4.6, 0.5), tgt, story.lerp(28, 22, k))
         k = (t - t0) / (t1 - t0)
         k = smooth(k) * 0.6 + k * 0.4
         return look(vlerp(a[0], z[0], k), vlerp(a[1], z[1], k), story.lerp(a[2], z[2], k))
@@ -512,7 +505,7 @@ def animate(b, star, gift, cam, bloom_radius):
         t = (f - 1) / FPS
         scn.frame_set(f)
         p = story.robot_pose(t)
-        b["root"].location = (story.robot_x(t) / 100.0, 0, 0)
+        b["root"].location = (story.robot_x(t) / 100.0, 0, ground_height(story.robot_x(t) / 100.0, 0) - 0.01)
         b["hip"].location = (0, 0, 0.62 + p["bob"] / 100.0)
         b["torso"].rotation_euler = (0, math.radians(p["lean"]), 0)
         b["head"].rotation_euler = (0, math.radians(p["head"]), 0)
@@ -547,16 +540,14 @@ def animate(b, star, gift, cam, bloom_radius):
             star_obj.location = loc
             star_obj.scale = (sc,) * 3
             star_obj.rotation_euler = (math.pi / 2, t * 0.8, 0)
-            star_s.default_value = 25 * bright
-            star_hs.default_value = 1.2 * bright
+            star_s.default_value = 9 * bright
             star_light.energy = 40 * bright + 900 * impact
         else:
             star_obj.scale = (0.0001,) * 3
-            star_s.default_value = star_hs.default_value = star_light.energy = 0
+            star_s.default_value = star_light.energy = 0
         for path in ("location", "scale", "rotation_euler"):
             kf(star_obj, path)
         star_s.keyframe_insert("default_value", frame=f)
-        star_hs.keyframe_insert("default_value", frame=f)
         star_light.keyframe_insert("energy", frame=f)
 
         g = gift_world(t, core)
@@ -565,14 +556,13 @@ def animate(b, star, gift, cam, bloom_radius):
             gift_obj.location = loc
             gift_obj.scale = (sc * (1 - smooth((t - 53.15) / 0.3)),) * 3
             gift_obj.rotation_euler = (math.pi / 2, t * 2.0, 0)
-            gift_s.default_value, gift_hs.default_value, gift_light.energy = 25 * bright, 1.2 * bright, 25 * bright
+            gift_s.default_value, gift_light.energy = 9 * bright, 25 * bright
         else:
             gift_obj.scale = (0.0001,) * 3
-            gift_s.default_value = gift_hs.default_value = gift_light.energy = 0
+            gift_s.default_value = gift_light.energy = 0
         for path in ("location", "scale", "rotation_euler"):
             kf(gift_obj, path)
         gift_s.keyframe_insert("default_value", frame=f)
-        gift_hs.keyframe_insert("default_value", frame=f)
         gift_light.keyframe_insert("energy", frame=f)
 
         # the sky answers: a ring of new stars spreading out from where the star arrived
@@ -599,22 +589,32 @@ def setup_render(scn):
     scn.render.resolution_x, scn.render.resolution_y = 1280, 720
     scn.render.engine = "CYCLES"
     scn.cycles.device = "CPU"
-    scn.cycles.samples = 24
-    scn.cycles.use_adaptive_sampling = True
-    scn.cycles.adaptive_threshold = 0.05
+    scn.render.resolution_percentage = 75  # 960x540, upscaled in finish()
+    scn.cycles.samples = 6
     scn.cycles.use_denoising = True
-    scn.cycles.max_bounces = 4
-    scn.cycles.diffuse_bounces = 2
-    scn.cycles.glossy_bounces = 2
+    scn.cycles.denoising_prefilter = "FAST"
+    scn.cycles.max_bounces = 2
+    scn.cycles.diffuse_bounces = 1
+    scn.cycles.glossy_bounces = 1
     scn.cycles.transmission_bounces = 0
     scn.cycles.volume_bounces = 0
     scn.cycles.transparent_max_bounces = 2
     scn.render.use_persistent_data = True
     scn.view_settings.view_transform = "AgX"
     scn.view_settings.look = "AgX - Medium High Contrast"
-    scn.view_settings.exposure = 0.6
+    scn.view_settings.exposure = 0.0
     scn.render.image_settings.file_format = "PNG"
     scn.render.filepath = os.path.join(FRAME_DIR, "")
+
+
+def bake_modifiers():
+    """Apply bevel / auto-smooth modifiers so frames don't re-evaluate them (big per-frame saving)."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    for obj in bpy.context.scene.objects:
+        if obj.type == "MESH" and obj.modifiers:
+            mesh = bpy.data.meshes.new_from_object(obj.evaluated_get(dg))
+            obj.modifiers.clear()
+            obj.data = mesh
 
 
 def build():
@@ -624,9 +624,10 @@ def build():
     bloom_radius = build_world()
     build_set()
     b = build_bolt()
-    star = build_star("FallenStar")
-    gift = build_star("GiftStar", 0.6)
+    star = build_star("FallenStar", 1.6)
+    gift = build_star("GiftStar", 1.0)
     cam = build_camera()
+    bake_modifiers()
     animate(b, star, gift, cam, bloom_radius)
     scn.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=BLEND)
@@ -637,7 +638,10 @@ def render(start, end):
     bpy.ops.wm.open_mainfile(filepath=BLEND)
     scn = bpy.context.scene
     setup_render(scn)
-    scn.render.threads_mode = "AUTO"
+    threads = int(os.environ.get("SPARK_THREADS", "0"))
+    scn.render.threads_mode = "FIXED" if threads else "AUTO"
+    if threads:
+        scn.render.threads = threads
     os.makedirs(FRAME_DIR, exist_ok=True)
     for f in range(start, end + 1):
         out = os.path.join(FRAME_DIR, "%04d.png" % f)
@@ -665,7 +669,7 @@ def finish(out=os.path.join(HERE, "spark_3d.mp4")):
         stdin=subprocess.PIPE)
     for f in range(1, FRAMES + 1):
         t = (f - 1) / FPS
-        img = Image.open(os.path.join(FRAME_DIR, "%04d.png" % f)).convert("RGB")
+        img = Image.open(os.path.join(FRAME_DIR, "%04d.png" % f)).convert("RGB").resize((W, H), Image.LANCZOS)
         # bloom: blur only the brightest parts and add them back
         arr = np.asarray(img, dtype=np.float32)
         bright = np.clip((arr.max(axis=2, keepdims=True) - 170) / 85, 0, 1) * arr

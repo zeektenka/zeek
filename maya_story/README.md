@@ -16,9 +16,14 @@ lights up in thanks, and one tiny star drifts down to relight Bolt. He waves goo
 | 54–60 s| Bolt glows again, waves. The End |
 
 ## Files
+- `spark_3d.mp4`: **the 3D movie**, rendered with Blender Cycles (1280×720, 24 fps, 60 s, music).
+- `blender_spark.py` + `spark_3d.blend`: the 3D production. `build` makes the keyed `.blend`,
+  `render START END` renders frames (run several in parallel), `finish` adds bloom, titles,
+  captions and the score and encodes the mp4. Needs `pip install bpy pillow numpy` and ffmpeg.
+  Open `spark_3d.blend` in Blender to tweak and re-render.
 - `spark_story.py`: **Maya** script (maya.cmds, Maya 2022+). Builds the whole scene:
   set, rigged Bolt, stars, lights, a keyed `shotCam` with cuts, and 1440 frames at 24 fps.
   Run it in the Script Editor, then `playblast_story("path/spark.mov")` or render `shotCam` with Arnold.
 - `render_preview.py`: standalone 2D preview of the same beat sheet (Pillow + numpy + ffmpeg),
   with a synthesized music-box score. `python3 render_preview.py`
-- `spark_preview.mp4`: the rendered 60 s preview (1280×720, 24 fps, with audio).
+- `spark_preview.mp4`: the earlier 2D animatic (1280×720, 24 fps, with audio).
