@@ -27,3 +27,20 @@ Deep navy shadows, muted teal midtones, warm amber lamp key (right), cool phone 
 6. Foreground: coffee table, water glass, book, plant leaves (left)
 
 Suggested motion: slow push-in, foreground drift opposite camera, blink and slight head tilt, flickering phone glow on face and hands.
+
+## Animation — `daniel_scene01.mp4`
+
+10 s, 1080×1920, 30 fps, H.264. Rendered from `daniel_v2.png` by `animate.py`
+(`pip install opencv-python-headless numpy pillow rembg`, plus ffmpeg).
+
+Timeline:
+- 0–10 s: slow push-in toward Daniel's eyes, with each layer moving at its own depth (city slowest, foreground fastest)
+- 2.2 s: phone flares as a message arrives; Daniel recoils slightly
+- 3.1 s: blink
+- 4.2–6.4 s: he leans in toward the screen
+- 6.4 s: scroll flicker on the phone light
+- 7.9 s: double blink
+- Throughout: city lights twinkle, tower beacon blinks, haze drifts, dust floats in the lamp light, lamp breathes, film grain
+
+`layers/` holds the separated RGBA plates (city, room, Daniel, foreground)
+for re-animating in After Effects, CapCut or similar.
